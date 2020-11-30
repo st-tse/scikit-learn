@@ -17,7 +17,7 @@ from ._kd_tree import KDTree
 
 
 VALID_KERNELS = ['gaussian', 'tophat', 'epanechnikov', 'exponential', 'linear',
-                 'cosine']
+                 'cosine','peter']
 TREE_DICT = {'ball_tree': BallTree, 'kd_tree': KDTree}
 
 
