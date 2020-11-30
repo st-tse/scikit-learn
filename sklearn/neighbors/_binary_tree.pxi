@@ -380,6 +380,7 @@ cdef enum KernelType:
     EXPONENTIAL_KERNEL = 4
     LINEAR_KERNEL = 5
     COSINE_KERNEL = 6
+    PETER_KERNEL = 7
 
 
 cdef inline DTYPE_t log_gaussian_kernel(DTYPE_t dist, DTYPE_t h):
@@ -422,6 +423,10 @@ cdef inline DTYPE_t log_cosine_kernel(DTYPE_t dist, DTYPE_t h):
         return log(cos(0.5 * PI * dist / h))
     else:
         return NEG_INF
+      
+cdef inline DTYPE_t log_peter_kernel(DTYPE_t dist, DTYPE_t h):
+    """log of the gaussian kernel for bandwidth h (unnormalized)"""
+    return -0.5 * (dist * dist) / (h * h)
 
 
 cdef inline DTYPE_t compute_log_kernel(DTYPE_t dist, DTYPE_t h,
@@ -439,7 +444,8 @@ cdef inline DTYPE_t compute_log_kernel(DTYPE_t dist, DTYPE_t h,
         return log_linear_kernel(dist, h)
     elif kernel == COSINE_KERNEL:
         return log_cosine_kernel(dist, h)
-
+    elif kernel == PETER_KERNEL:
+        return log_peter_kernel(dist, h)
 
 #------------------------------------------------------------
 # Kernel norms are defined via the volume element V_n
@@ -480,6 +486,8 @@ cdef DTYPE_t _log_kernel_norm(DTYPE_t h, ITYPE_t d,
             factor += tmp
             tmp *= -(d - k) * (d - k - 1) * (2. / PI) ** 2
         factor = log(factor) + logSn(d - 1)
+    if kernel == PETER_KERNEL:
+        factor = 0.5 * d * LOG_2PI
     else:
         raise ValueError("Kernel code not recognized")
     return -factor - d * log(h)
@@ -518,6 +526,8 @@ def kernel_norm(h, d, kernel, return_log=False):
         result = _log_kernel_norm(h, d, LINEAR_KERNEL)
     elif kernel == 'cosine':
         result = _log_kernel_norm(h, d, COSINE_KERNEL)
+    elif kernel == 'peter':
+        result = _log_kernel_norm(h, d, PETER_KERNEL)
     else:
         raise ValueError('kernel not recognized')
 
@@ -1662,6 +1672,8 @@ cdef class BinaryTree:
             kernel_c = LINEAR_KERNEL
         elif kernel == 'cosine':
             kernel_c = COSINE_KERNEL
+        elif kernel == 'peter':
+            kernel_c = PETER_KERNEL
         else:
             raise ValueError("kernel = '%s' not recognized" % kernel)
 
